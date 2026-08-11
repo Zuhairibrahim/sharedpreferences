@@ -1,4 +1,4 @@
-package com.zuhair.sharedpreferencess
+package com.zuhair.sharedpreferencess.apps
 
 import io.flutter.embedding.android.FlutterActivity
 

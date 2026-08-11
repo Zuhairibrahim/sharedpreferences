@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.zuhair.sharedpreferencess"
+    namespace = "com.zuhair.sharedpreferencess.apps"
 
     // 🔥 تحديث الـ Compile SDK إجباريًا إلى إصدار 35 تلبية لطلب قوقل
     compileSdk = 36
@@ -42,7 +42,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.zuhair.sharedpreferencess"
+        applicationId = "com.zuhair.sharedpreferencess.apps"
         minSdk = flutter.minSdkVersion
 
         // 🔥 تحديث الـ Target SDK إجباريًا إلى إصدار 35 عشان يقبله المتجر
