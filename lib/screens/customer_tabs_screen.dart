@@ -25,7 +25,7 @@ class _CustomerDetailTabsState extends State<CustomerDetailTabs> {
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-1396394529471927/1800738227',
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111',
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
