@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:intl/intl.dart'; // 🔥 تم إضافة مكتبة الفواصل هنا
 import '../models/customer_model.dart';
+import '../services/money_math.dart';
 
 class CustomerFullHistoryScreen extends StatefulWidget {
   final Customer customer;
@@ -14,11 +14,8 @@ class CustomerFullHistoryScreen extends StatefulWidget {
 class _CustomerFullHistoryScreenState extends State<CustomerFullHistoryScreen> {
   InterstitialAd? _interstitialAd;
 
-  // دالة مساعدة مضافة لتنسيق الأرقام بالفواصل تلقائياً
-  String _formatNumber(double number) {
-    final formatter = NumberFormat('#,###', 'en_US');
-    return formatter.format(number);
-  }
+  // دالة مساعدة لتنسيق الأرقام بالفواصل تلقائياً (بدون فقدان الكسور)
+  String _formatNumber(double number) => formatMoney(number);
 
   @override
   void initState() {

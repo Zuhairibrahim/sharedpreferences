@@ -4,6 +4,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../models/customer_model.dart';
 import '../services/storage_service.dart';
+import '../services/money_math.dart';
 
 class AddCustomerScreen extends StatefulWidget {
   final List<Customer> allCustomers;
@@ -157,7 +158,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                       String cleanPhone = _convertArabicToEnglishNumbers(_phoneController.text.trim());
                       String rawDebtStr = _initialDebtController.text.replaceAll(',', '').trim();
                       String cleanDebtStr = _convertArabicToEnglishNumbers(rawDebtStr);
-                      double debt = double.tryParse(cleanDebtStr) ?? 0.0;
+                      double debt = roundToCents(double.tryParse(cleanDebtStr) ?? 0.0);
 
                       Customer newCustomer = Customer(
                         id: DateTime.now().millisecondsSinceEpoch.toString(),

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'dart:async';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:intl/intl.dart'; // 🔥 تم إضافة مكتبة الفواصل هنا
 import '../models/customer_model.dart';
 import '../services/storage_service.dart';
+import '../services/money_math.dart';
 import 'customer_tabs_screen.dart'; // تأكد من مطابقة اسم ملف التبويبات لديك
 import 'add_customer_screen.dart';
 
@@ -30,11 +30,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   InterstitialAd? _interstitialAd;
 
-  // دالة مساعدة مضافة لتنسيق الأرقام بالفواصل تلقائياً
-  String _formatNumber(double number) {
-    final formatter = NumberFormat('#,###', 'en_US');
-    return formatter.format(number);
-  }
+  // دالة مساعدة لتنسيق الأرقام بالفواصل تلقائياً (بدون فقدان الكسور)
+  String _formatNumber(double number) => formatMoney(number);
 
   @override
   void initState() {
@@ -84,30 +81,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // 🔥 دالة الحساب بالملّي: تجمع دائماً من القائمة الشاملة لجميع العملاء لضمان عدم لخبطة الأرقام أثناء البحث
+  // الحساب يتم بأعداد صحيحة (فلسات = 1/100) لمنع أي كسور برمجية وهمية في لغة Dart
   void _calculateTotals() {
-    double initial = 0.0;
-    double current = 0.0;
-    double added = 0.0;
-    double receipts = 0.0;
+    int initial = 0;
+    int current = 0;
+    int added = 0;
+    int receipts = 0;
 
     for (var customer in _allCustomers) {
-      initial += customer.initialDebt;
-      current += customer.totalDebt;
+      initial += toCents(customer.initialDebt);
+      current += toCents(customer.totalDebt);
 
       for (var tx in customer.history) {
         if (tx.isAddition) {
-          added += tx.amount;
+          added += toCents(tx.amount);
         } else {
-          receipts += tx.amount;
+          receipts += toCents(tx.amount);
         }
       }
     }
 
-    // تقريب عشري صارم لمنع أي كسور برمجية وهمية في لغة Dart
-    _totalInitial = double.parse(initial.toStringAsFixed(2));
-    _totalCurrent = double.parse(current.toStringAsFixed(2));
-    _totalAdded = double.parse(added.toStringAsFixed(2));
-    _totalReceipts = double.parse(receipts.toStringAsFixed(2));
+    _totalInitial = fromCents(initial);
+    _totalCurrent = fromCents(current);
+    _totalAdded = fromCents(added);
+    _totalReceipts = fromCents(receipts);
   }
 
   // دالة الفلترة اليدوية أثناء الكتابة الفعليّة فقط

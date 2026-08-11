@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:intl/intl.dart'; // 🔥 تم إضافة مكتبة الفواصل هنا
 import '../models/customer_model.dart';
 import '../services/storage_service.dart';
+import '../services/money_math.dart';
 
 class CustomerOperationsScreen extends StatefulWidget {
   final Customer customer;
@@ -43,11 +43,8 @@ class _CustomerOperationsScreenState extends State<CustomerOperationsScreen> {
     super.dispose();
   }
 
-  // دالة مساعدة مضافة لتنسيق الأرقام بالفواصل تلقائياً عند العرض
-  String _formatNumber(double number) {
-    final formatter = NumberFormat('#,###', 'en_US');
-    return formatter.format(number);
-  }
+  // دالة مساعدة لتنسيق الأرقام بالفواصل تلقائياً عند العرض (بدون فقدان الكسور)
+  String _formatNumber(double number) => formatMoney(number);
 
   // دالة مخصصة لتنسيق النص المكتوب حياً داخل الـ Container
   String _formatLiveInput(String input) {
@@ -87,16 +84,24 @@ class _CustomerOperationsScreenState extends State<CustomerOperationsScreen> {
     }
     String cleanStr = _convertArabicToEnglishNumbers(_inputAmount);
     double val = double.tryParse(cleanStr) ?? 0.0;
+    if (val <= 0) {
+      _previewMessage = '';
+      return;
+    }
 
-    double currentDebt = widget.customer.totalDebt;
+    int currentCents = toCents(widget.customer.totalDebt);
+    int amountCents = toCents(val);
+
     if (_isAddOperation) {
-      double newDebt = double.parse((currentDebt + val).toStringAsFixed(2));
-      // 🔥 تم تعديل السطر أدناه لإضافة الفواصل في رسالة المعاينة الحية عند الإضافة
-      _previewMessage = 'سيتم إضافة مبلغ ${_formatNumber(val)} ريال يمني لدين العميل.\nالدين الجديد سيكون: ${_formatNumber(newDebt)} ريال';
+      int newDebtCents = currentCents + amountCents;
+      _previewMessage = 'سيتم إضافة مبلغ ${_formatNumber(fromCents(amountCents))} ريال يمني لدين العميل.\nالدين الجديد سيكون: ${_formatNumber(fromCents(newDebtCents))} ريال';
     } else {
-      double newDebt = double.parse((currentDebt - val).toStringAsFixed(2));
-      // 🔥 تم تعديل السطر أدناه لإضافة الفواصل في رسالة المعاينة الحية عند الخصم
-      _previewMessage = 'سيتم خصم مبلغ ${_formatNumber(val)} ريال يمني من دين العميل.\nالباقي سيكون: ${_formatNumber(newDebt)} ريال';
+      if (amountCents > currentCents) {
+        _previewMessage = 'تنبيه: مبلغ الخصم أكبر من الدين الحالي (${_formatNumber(widget.customer.totalDebt)} ريال)!';
+        return;
+      }
+      int newDebtCents = currentCents - amountCents;
+      _previewMessage = 'سيتم خصم مبلغ ${_formatNumber(fromCents(amountCents))} ريال يمني من دين العميل.\nالباقي سيكون: ${_formatNumber(fromCents(newDebtCents))} ريال';
     }
   }
 
@@ -105,28 +110,39 @@ class _CustomerOperationsScreenState extends State<CustomerOperationsScreen> {
     double amount = double.tryParse(cleanStr) ?? 0.0;
     if (amount <= 0) return;
 
-    amount = double.parse(amount.toStringAsFixed(2));
+    int amountCents = toCents(amount);
+    int currentCents = toCents(widget.customer.totalDebt);
+
+    if (!_isAddOperation && amountCents > currentCents) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('المبلغ المدخل أكبر من الدين الحالي!', textAlign: TextAlign.center),
+            backgroundColor: Colors.redAccent
+        ),
+      );
+      return;
+    }
 
     setState(() {
+      int newDebtCents;
       if (_isAddOperation) {
-        double calculatedDebt = widget.customer.totalDebt + amount;
-        widget.customer.totalDebt = double.parse(calculatedDebt.toStringAsFixed(2));
+        newDebtCents = currentCents + amountCents;
+        widget.customer.totalDebt = fromCents(newDebtCents);
 
         widget.customer.history.insert(0, Transaction(
             title: 'إضافة دين جديد',
-            amount: amount,
+            amount: fromCents(amountCents),
             balanceAfter: widget.customer.totalDebt,
             date: '2026/06',
             isAddition: true
         ));
       } else {
-        if (amount > widget.customer.totalDebt) return;
-        double calculatedDebt = widget.customer.totalDebt - amount;
-        widget.customer.totalDebt = double.parse(calculatedDebt.toStringAsFixed(2));
+        newDebtCents = currentCents - amountCents;
+        widget.customer.totalDebt = fromCents(newDebtCents);
 
         widget.customer.history.insert(0, Transaction(
             title: 'سداد مالي (خصم وحفظ)',
-            amount: amount,
+            amount: fromCents(amountCents),
             balanceAfter: widget.customer.totalDebt,
             date: '2026/06',
             isAddition: false
