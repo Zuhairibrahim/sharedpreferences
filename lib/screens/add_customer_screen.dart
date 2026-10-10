@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // تفعيل التنسيق والتحكم بالمدخلات
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../models/customer_model.dart';
 import '../services/storage_service.dart';
 import '../services/money_math.dart';
+import '../services/ad_service.dart';
 
 class AddCustomerScreen extends StatefulWidget {
   final List<Customer> allCustomers;
@@ -22,28 +22,14 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   final _phoneController = TextEditingController();
   final _initialDebtController = TextEditingController();
 
-  InterstitialAd? _interstitialAd;
-
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/1033173712',
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) => _interstitialAd = ad,
-        onAdFailedToLoad: (err) => _interstitialAd = null,
-      ),
-    );
+    AdService.loadInterstitial();
   }
 
   @override
   void dispose() {
-    _interstitialAd?.dispose();
     super.dispose();
   }
 
@@ -173,9 +159,8 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                       widget.allCustomers.add(newCustomer);
                       await StorageService.saveCustomers(widget.allCustomers);
 
-                      if (_interstitialAd != null) {
-                        _interstitialAd!.show();
-                      }
+                      // عرض إعلان بيني بعد حفظ العميل (نقطة توقف طبيعية ومحسوبة)
+                      await AdService.showInterstitialAtBreak();
 
                       if (context.mounted) Navigator.pop(context);
                     }

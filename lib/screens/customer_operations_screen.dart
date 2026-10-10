@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/customer_model.dart';
 import '../services/storage_service.dart';
 import '../services/money_math.dart';
+import '../services/ad_service.dart';
 
 class CustomerOperationsScreen extends StatefulWidget {
   final Customer customer;
@@ -18,28 +18,15 @@ class _CustomerOperationsScreenState extends State<CustomerOperationsScreen> {
   String _inputAmount = '';
   bool _isAddOperation = true;
   String _previewMessage = '';
-  InterstitialAd? _interstitialAd;
 
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/1033173712',
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) => _interstitialAd = ad,
-        onAdFailedToLoad: (err) => _interstitialAd = null,
-      ),
-    );
+    AdService.loadInterstitial();
   }
 
   @override
   void dispose() {
-    _interstitialAd?.dispose();
     super.dispose();
   }
 
@@ -154,9 +141,8 @@ class _CustomerOperationsScreenState extends State<CustomerOperationsScreen> {
 
     await StorageService.saveCustomers(widget.allCustomers);
 
-    if (_interstitialAd != null) {
-      _interstitialAd!.show();
-    }
+    // عرض إعلان بيني بعد تنفيذ العملية المالية بنجاح (نقطة توقف طبيعية ومحسوبة)
+    await AdService.showInterstitialAtBreak();
 
     if (mounted) {
       FocusScope.of(context).unfocus();

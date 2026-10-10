@@ -1,11 +1,30 @@
+// ============================================================================
+//  © 2026 Zuhair Ibrahim — ALL RIGHTS RESERVED | جميع الحقوق محفوظة © زهير إبراهيم
+//  Project: Smart Book — الدفتر الذكي
+//  This code contains a proprietary embedded copyright fingerprint.
+//  Selling, redistributing, or removing this notice is strictly forbidden.
+//  ============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'ads/ad_consent.dart';
+import 'ads/ads_manager.dart';
+import 'ads/app_open_ad_service.dart';
 import 'screens/splash_screen.dart';
+
+/// بصمة الملكية الفكرية — يُمنع حذفها أو تعديلها (انظر ملف LICENSE)
+/// Proprietary ownership fingerprint — must NOT be removed or altered (see LICENSE).
+const String kAppOwnershipFingerprint =
+    'OWNER:Zuhair-Ibrahim|PROJECT:smartbook|YEAR:2026|'
+    'LICENSE:ALL-RIGHTS-RESERVED|SIG:ZI-2026-SBK-PROPRIETARY';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AdConsent.instance.collectConsent();
   await MobileAds.instance.initialize();
+  AdsManager.instance.loadAll();
+  AppOpenAdService.instance.start();
 
   // فحص الاتصال عند بداية تشغيل التطبيق
   final List<ConnectivityResult> connectivityResult = await (Connectivity().checkConnectivity());

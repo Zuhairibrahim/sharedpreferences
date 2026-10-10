@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/customer_model.dart';
+import '../ads/ad_helper.dart';
 import 'customer_operations_screen.dart';
 import 'customer_history_screen.dart';
 
@@ -16,6 +17,7 @@ class CustomerDetailTabs extends StatefulWidget {
 
 class _CustomerDetailTabsState extends State<CustomerDetailTabs> {
   BannerAd? _bannerAd;
+  bool _bannerLoaded = false;
 
   @override
   void initState() {
@@ -25,11 +27,18 @@ class _CustomerDetailTabsState extends State<CustomerDetailTabs> {
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+      adUnitId: AdHelper.bannerUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
-        onAdFailedToLoad: (ad, err) => ad.dispose(),
+        onAdLoaded: (_) {
+          if (mounted) setState(() => _bannerLoaded = true);
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+          _bannerAd = null;
+          if (mounted) setState(() => _bannerLoaded = false);
+        },
       ),
     )..load();
   }
@@ -67,10 +76,10 @@ class _CustomerDetailTabsState extends State<CustomerDetailTabs> {
           body: Column(
             children: [
               Expanded(
-                child: WillPopScope(
-                  onWillPop: () async {
-                    Navigator.pop(context, true);
-                    return false;
+                child: PopScope(
+                  canPop: false,
+                  onPopInvokedWithResult: (didPop, _) {
+                    if (!didPop) Navigator.pop(context, true);
                   },
                   child: TabBarView(
                     children: [
@@ -80,7 +89,7 @@ class _CustomerDetailTabsState extends State<CustomerDetailTabs> {
                   ),
                 ),
               ),
-              if (_bannerAd != null)
+              if (_bannerLoaded && _bannerAd != null)
                 SizedBox(
                   width: _bannerAd!.size.width.toDouble(),
                   height: _bannerAd!.size.height.toDouble(),

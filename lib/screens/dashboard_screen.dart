@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
-import 'dart:async';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/customer_model.dart';
 import '../services/storage_service.dart';
 import '../services/money_math.dart';
+import '../services/ad_service.dart';
+import '../ads/ads_manager.dart';
+import '../widgets/inline_native_ad.dart';
 import 'customer_tabs_screen.dart'; // تأكد من مطابقة اسم ملف التبويبات لديك
 import 'add_customer_screen.dart';
 
@@ -28,7 +29,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _totalAdded = 0.0;
   double _totalReceipts = 0.0;
 
-  InterstitialAd? _interstitialAd;
+  // تناوب بين البيني العادي والبيني بمكافأة عند نقاط التوقف الطبيعية
+  bool _useRewardedInterstitialNext = false;
 
   // دالة مساعدة لتنسيق الأرقام بالفواصل تلقائياً (بدون فقدان الكسور)
   String _formatNumber(double number) => formatMoney(number);
@@ -37,36 +39,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
-    _loadInterstitialAd();
-    _startAdTimer();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/1033173712',
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) => _interstitialAd = ad,
-        onAdFailedToLoad: (err) => _interstitialAd = null,
-      ),
-    );
-  }
-
-  void _startAdTimer() {
-    Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (_interstitialAd != null) {
-        _interstitialAd!.show();
-        _interstitialAd = null;
-        _loadInterstitialAd();
-      }
-    });
+    AdService.loadInterstitial();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose(); // إغلاق المستشعر عند تدمير الشاشة لحماية الذاكرة
-    _interstitialAd?.dispose();
     super.dispose();
   }
 
@@ -129,6 +108,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         centerTitle: true,
         backgroundColor: const Color(0xff121212),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.card_giftcard, color: Colors.white),
+            tooltip: 'شاهد إعلان وادعم التطبيق',
+            onPressed: () => AdsManager.instance.showRewarded(onRewarded: () {}),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Directionality(
@@ -193,9 +179,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: _filteredCustomers.isEmpty
                     ? const Center(child: Text('لا يوجد عملاء مطابقتين للبحث', style: TextStyle(color: Colors.grey)))
                     : ListView.builder(
-                  itemCount: _filteredCustomers.length,
+                  itemCount: _filteredCustomers.length + _filteredCustomers.length ~/ 8,
                   itemBuilder: (context, index) {
-                    final customer = _filteredCustomers[index];
+                    if ((index + 1) % 9 == 0) {
+                      return const InlineNativeAd();
+                    }
+                    final customerIndex = index - ((index + 1) ~/ 9);
+                    if (customerIndex >= _filteredCustomers.length) {
+                      return const SizedBox.shrink();
+                    }
+                    final customer = _filteredCustomers[customerIndex];
                     return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(color: const Color(0xff1a1a1a), borderRadius: BorderRadius.circular(8)),
@@ -221,7 +214,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           );
 
-                          // 2. 🔥 فور الرجوع للشاشة: قتل أمر البحث تماماً وإظهار شاشة كل العملاء يدوياً
+                          // 2. عرض إعلان عند العودة (نقطة توقف طبيعية وبحد زمني آمن)
+                          //    بالتناوب بين البيني العادي والبيني بمكافأة
+                          if (_useRewardedInterstitialNext) {
+                            AdsManager.instance.showRewardedInterstitial();
+                          } else {
+                            await AdService.showInterstitialAtBreak();
+                          }
+                          _useRewardedInterstitialNext = !_useRewardedInterstitialNext;
+
+                          // 3. 🔥 فور الرجوع للشاشة: قتل أمر البحث تماماً وإظهار شاشة كل العملاء يدوياً
                           setState(() {
                             _searchController.clear(); // مسح نص الكتابة كلياً
                             _searchFocusNode.unfocus(); // سحب مؤشر الكتابة وإغلاق الكيبورد بقوة لكي لا يفتح تلقائياً

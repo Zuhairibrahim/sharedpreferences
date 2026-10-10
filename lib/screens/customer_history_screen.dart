@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/customer_model.dart';
 import '../services/money_math.dart';
+import '../services/ad_service.dart';
 
 class CustomerFullHistoryScreen extends StatefulWidget {
   final Customer customer;
@@ -12,31 +12,17 @@ class CustomerFullHistoryScreen extends StatefulWidget {
 }
 
 class _CustomerFullHistoryScreenState extends State<CustomerFullHistoryScreen> {
-  InterstitialAd? _interstitialAd;
-
   // دالة مساعدة لتنسيق الأرقام بالفواصل تلقائياً (بدون فقدان الكسور)
   String _formatNumber(double number) => formatMoney(number);
 
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/1033173712',
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) => _interstitialAd = ad,
-        onAdFailedToLoad: (err) => _interstitialAd = null,
-      ),
-    );
+    AdService.loadInterstitial();
   }
 
   @override
   void dispose() {
-    _interstitialAd?.dispose();
     super.dispose();
   }
 
@@ -61,9 +47,8 @@ class _CustomerFullHistoryScreenState extends State<CustomerFullHistoryScreen> {
                   decoration: BoxDecoration(color: const Color(0xff121212), borderRadius: BorderRadius.circular(8), border: Border(right: BorderSide(color: tx.isAddition ? Colors.green : Colors.red, width: 5))),
                   child: ListTile(
                     onTap: () {
-                      if (_interstitialAd != null) {
-                        _interstitialAd!.show();
-                      }
+                      // عرض إعلان بيني عند نقر المستخدم على عملية (نقطة توقف طبيعية ومحسوبة)
+                      AdService.showInterstitialAtBreak();
                     },
                     title: Text(tx.title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                     // 🔥 تم تعديل السطر أدناه لإضافة الفواصل للمبلغ المتبقي
